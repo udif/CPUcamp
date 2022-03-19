@@ -62,7 +62,8 @@ The CPU block diagram, as described in the course book:
  
  ![image](https://user-images.githubusercontent.com/94902187/159119425-ab7bc7e6-ef86-4a48-b2f9-62794634f5e5.png)
 
-![image](https://user-images.githubusercontent.com/94902187/159119440-df9359e2-3b08-410f-9629-2659d2934983.png)
+![image](https://user-images.githubusercontent.com/94902187/159119483-143ed737-cbf7-4717-b73b-3e83f02bfdc8.png)
+
 
  
 Run a Sample Program
