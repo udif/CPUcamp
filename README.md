@@ -1,6 +1,7 @@
 The Challenge
 You will be given a basic CPU design embedded in a full system containing:
 
+
 •	VGA module 		– For displaying Part of the RAM 24 lines, for debug and review.
 •	RAM module 		– like any modern based CPU system for memory store & load.
 •	ROM module 		– to contain the software the CPU should run.
