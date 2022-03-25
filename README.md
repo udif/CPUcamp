@@ -1,12 +1,16 @@
-The Challenge
+# The Challenge
+The challenge is based on the Hack CPU of the Nand2Tetris project at https://www.nand2tetris.org/
+specifically you want to go over the Hack architeture and ISA here: 
+https://www.coursera.org/learn/nand2tetris2/lecture/rlxAQ/unit-0-3-the-hack-computer-and-machine-language
+
 You will be given a basic CPU design embedded in a full system containing:
 
 
-•	VGA module 		– For displaying Part of the RAM 24 lines, for debug and review.
-•	RAM module 		– like any modern based CPU system for memory store & load.
-•	ROM module 		– to contain the software the CPU should run.
-•	Performance counter 	– to analyze the software runtime.
-•	Hex display 		– to write the Hex runtime of the system on the FPGA 7Seg display.
+- VGA module 		– For displaying Part of the RAM 24 lines, for debug and review.
+- RAM module 		– like any modern based CPU system for memory store & load.
+- ROM module 		– to contain the software the CPU should run.
+- Performance counter 	– to analyze the software runtime.
+- Hex display 		– to write the Hex runtime of the system on the FPGA 7Seg display.
 
 
 The challenge is to make the system written in the Verilog files  to run the ROM software as fast as possible – the fastest code which runs without changing the functionality of the software nor the runtime checker wins 😊.
@@ -24,10 +28,10 @@ The seven segment is to represent the runtime in Hex Decimal clock cycles count.
 
 You may rewrite almost anything, including
 
-•	alu.sv
-•	ram.sv  
-•	rom.sv 
-•	cpu.sv 
+- alu.sv
+- ram.sv  
+- rom.sv 
+- cpu.sv 
 
 for the following System Verilog file definitions.sv make sure you modify only what is related to the CPU / ROM / RAM blocks and not the seven segment nor the runtime checker or the VGA.
 
