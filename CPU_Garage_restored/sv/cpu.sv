@@ -16,15 +16,16 @@ module cpu (
     reg [15:0] a;
     reg [15:0] d;
 
-    logic stall;
+    logic stall, stall_q;
 
     always_ff @(posedge clk or negedge resetN)
     begin
         if (!resetN)
-            stall <= 1'b1;
+            stall_q <= 1'b1;
         else
-            stall <= !sel_am && !stall;
+            stall_q <= stall;
     end
+    assign stall = sel_a && sel_am && !stall_q || !resetN;
 
     //ALU module instantiation
     alu alu0(
@@ -63,11 +64,11 @@ module cpu (
             pc <= next_pc;
 
     always @(posedge clk)
-        if (load_a && !stall)
+        if (load_a)
             a <= next_a;
 
     always @(posedge clk)
-        if (load_d && !stall)
+        if (load_d)
             d <= next_d;
 
 endmodule
