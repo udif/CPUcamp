@@ -3,11 +3,15 @@
 
 //=== PLL
 // Uncomment the following line to use a PLL. Set the multiplication and division factors however you like.
-// `define USE_PLL
+`define USE_PLL
 // max settings that worked for me:
 // kiwi -       250/100
 // de10-lite -  260/100
-`define PLL_MULTIPLY 250
+
+// *********************************************************************************
+// *** don't forget to change PLL_MULTIPLY value in CPU_GARAGE.sdc file as well! ***
+// *********************************************************************************
+`define PLL_MULTIPLY 315
 `define PLL_DIVIDE 100
 
 
