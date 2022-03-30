@@ -1,18 +1,18 @@
 module cpu (
         input logic         clk,
         input logic [3:0]   SW,
-        input logic [15:0]  inst,
+        input logic [31:0]  in_inst,
         input logic [15:0]  in_m,
         input logic         resetN,
 
         output logic [15:0] out_m,
         output logic        write_m,
         output logic [14:0] data_addr,
-        output logic [14:0] inst_addr
+        output logic [8:0] inst_addr
     );
 
     //////////////////////////////////////////
-    reg [14:0] pc;
+    reg [9:0] pc;
     reg [15:0] a;
     reg [15:0] d;
 
@@ -36,6 +36,7 @@ module cpu (
             .zero(zero)
         );
 
+    wire [15:0]inst = pc[0] ? in_inst[31:16] : in_inst[15:0];
     wire load_a = !inst[15] || inst[5];
     wire load_d = inst[15] && inst[4];
     wire sel_a = inst[15];
@@ -55,7 +56,7 @@ module cpu (
     assign data_addr = a[14:0];
     assign out_m = alu_out;
     assign write_m = inst[15] && inst[3] && !stall;
-    assign inst_addr = next_pc;
+    assign inst_addr = next_pc[9:1];
 
     always @(posedge clk)
         if (!resetN)

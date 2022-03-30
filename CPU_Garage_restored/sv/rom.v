@@ -91,7 +91,7 @@ module rom (
 `ifdef NO_PLI
 		altsyncram_component.init_file = "../memory/rom.rif"
 `else
-		altsyncram_component.init_file = "../memory/rom.hex"
+		altsyncram_component.init_file = "../memory/rom32.mif"
 `endif
 ,
 `endif
