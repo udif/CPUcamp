@@ -21,8 +21,8 @@ module top(
     // Widths and Counts
     // You may change the width of the instruction (e.g. make a 32-bit cpu).
     // You may change the width of the data (e.g. read and write 32 bit data into the ram).
-    parameter DATA_WIDTH = 16, INSTR_WIDTH = 32; // ram and instruction widths in bits (default is 16 for both).
-    parameter ROM_REGISTER_COUNT = 2**9, RAM_REGISTER_COUNT = 2**10;
+    parameter DATA_WIDTH = 16, INSTR_WIDTH = 16; // ram and instruction widths in bits (default is 16 for both).
+    parameter ROM_REGISTER_COUNT = 2**10, RAM_REGISTER_COUNT = 2**10;
 
     // VGA Settings
     parameter BITS_PER_MEMORY_PIXEL_X = 4; //4
@@ -192,7 +192,7 @@ module top(
     cpu cpu_inst (
             .clk(cpu_clk),
             .SW(SW),
-            .in_inst(instruction),
+            .inst(instruction),
             .in_m(rdata),
             .resetN(resetN),
 
