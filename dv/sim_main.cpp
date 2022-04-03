@@ -36,10 +36,14 @@ int main(int argc, char** argv, char** env) {
         top->CLK_50 = 1;
         top->eval();
         top->BUTTON = 1;
-        std::cout << "address=" << std::setfill('0') << std::setw(3) << std::hex << top->top->__PVT__cpu_inst__DOT__pc;
-        std::cout << " inst="   << std::setfill('0') << std::setw(4) << std::hex << top->top->instruction;
-        std::cout << std::endl;
-        if (top->top->inst_address > 10)
+        if (top->top->we) {
+            std::cout << "address=" << std::setfill('0') << std::setw(3) << std::hex << top->top->__PVT__cpu_inst__DOT__pc;
+            std::cout << " inst="   << std::setfill('0') << std::setw(4) << std::hex << top->top->instruction;
+            std::cout << " ram_address=" << std::setfill('0') << std::setw(3) << std::hex << top->top->ram_address;
+            std::cout << " write_data=" << std::setw(5) << std::dec << top->top->cpu_out_m;
+            std::cout << std::endl;
+        }
+        if (top->top->inst_address > 159)
             exit(0);
     }
 
