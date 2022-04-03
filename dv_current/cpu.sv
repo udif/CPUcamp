@@ -91,8 +91,8 @@ module cpu #(
                   (dual_issue || pc[0]) && ( inst[`SEL1_A] && inst[`SEL1_LD_M]);
     wire jump0 = !pc[0] && inst[`SEL0_A] && ((less_than_zero && inst[`SEL0_LT0]) || (zero && inst[`SEL0_0]) || (greater_than_zero && inst[`SEL0_GT0]));
     wire jump1 =           inst[`SEL1_A] && ((less_than_zero && inst[`SEL1_LT0]) || (zero && inst[`SEL1_0]) || (greater_than_zero && inst[`SEL1_GT0])) ;
-    wire jump_a = jump1 && pc[1] && !dual_issue;
-    wire jump_inst = jump0 || jump1 && dual_issue;
+    wire jump_a = jump1 && pc[1] && !dual_issue || jump0;
+    wire jump_inst = jump1 && dual_issue;
 
     //select if the ALU's Y input is from ram or from A register
     wire sel_am = (dual_issue || pc[0]) ? inst[`SEL1_AM] :

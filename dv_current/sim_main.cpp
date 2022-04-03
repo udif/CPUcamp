@@ -60,6 +60,7 @@ int main(int argc, char** argv, char** env) {
     const std::unique_ptr<Vtop> top{new Vtop{contextp.get(), "TOP"}};
 
     top->BUTTON = 0;
+    int outer_loop = 0;
     for (int i = 0; i < 5; i++) {
     	top->CLK_50 = 0;
         contextp->timeInc(1);
@@ -90,9 +91,11 @@ int main(int argc, char** argv, char** env) {
             std::cout << std::endl;
         }
         if (top->top->__PVT__rst2 && top->top->__PVT__cpu_inst__DOT__pc > 159) {
-        //if (x++ > 10)
-            std::cout << "Got to final address\n";
-            break;
+            std::cout << outer_loop << "pc:" << top->top->__PVT__cpu_inst__DOT__pc << std::endl;
+            if (++outer_loop == 20) {
+                std::cout << "Got to final address\n";
+                break;
+            }
         }
     }
 
