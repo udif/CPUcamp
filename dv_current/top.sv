@@ -81,7 +81,7 @@ module top(
     logic [14:0]cpu_data_addr;
     logic cpu_read_m, cpu_write_m, cpu_stall;
     logic [DATA_WIDTH-1:0] cpu_in_m;
-    logic [DATA_WIDTH-1:0] cpu_out_m;
+    logic [DATA_WIDTH-1:0] cpu_out_m  /*verilator public*/ ;
 
     logic [9:0] pixel_x;
     logic [9:0] pixel_y;
@@ -93,6 +93,19 @@ module top(
     assign resetN = BUTTON[0];
 
     logic finished;
+
+`ifdef VERILATOR
+    initial
+    begin
+        if ($test$plusargs("trace") != 0)
+        begin
+            $display("[%0t] Tracing to logs/vlt_dump.vcd...\n", $time);
+            $dumpfile("logs/vlt_dump.vcd");
+            $dumpvars();
+        end
+        $display("[%0t] Model running...\n", $time);
+   end
+`endif
 
 /* verilator lint_off WIDTH */
     always_comb

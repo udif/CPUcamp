@@ -91,9 +91,8 @@ module rom (
 `ifdef NO_PLI
 		altsyncram_component.init_file = "../memory/rom.rif"
 `else
-		altsyncram_component.init_file = "../memory/rom.hex"
+		altsyncram_component.init_file = "../memory/rom32.mif",
 `endif
-,
 `endif
 		altsyncram_component.intended_device_family = "MAX 10",
 		altsyncram_component.lpm_hint = "ENABLE_RUNTIME_MOD=YES,INSTANCE_NAME=ROM",

@@ -70,7 +70,7 @@ module top(
 
     //===
     logic [14:0]ram_address  /*verilator public*/ ;
-    logic we  /*verilator public*/ ;
+    logic ram_write_m  /*verilator public*/ ;
     logic [DATA_WIDTH-1:0] rdata  /*verilator public*/ ;
     //CPU AND ROM
     logic [INSTR_WIDTH-1:0] instruction  /*verilator public*/ ;
@@ -88,6 +88,17 @@ module top(
     assign resetN = BUTTON[0];
 
     logic finished;
+
+    initial
+    begin
+        if ($test$plusargs("trace") != 0)
+        begin
+            $display("[%0t] Tracing to logs/vlt_dump.vcd...\n", $time);
+            $dumpfile("logs/vlt_dump.vcd");
+            $dumpvars();
+        end
+        $display("[%0t] Model running...\n", $time);
+    end
 
 /* verilator lint_off WIDTH */
     always_comb
@@ -112,7 +123,7 @@ module top(
             .clock_b (CLK_50),
             .data_a (cpu_out_m),
             .data_b (16'b0),
-            .wren_a (we),
+            .wren_a (ram_write_m),
             .wren_b (~resetN),
             .q_a (rdata),
             .q_b (vga_word_value)
@@ -205,7 +216,7 @@ module top(
             .resetN(resetN),
 
             .out_m(cpu_out_m),
-            .write_m(we),
+            .write_m(ram_write_m),
             .data_addr(ram_address),
             .inst_addr(inst_address)
         );

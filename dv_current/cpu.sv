@@ -119,7 +119,7 @@ module cpu #(
     assign read_m  =
         (dual_issue ? inst[`SEL1_AM] :
          pc[0]      ? inst[`SEL1_AM] && inst[`SEL1_A]:
-                      inst[`SEL0_AM] && inst[`SEL0_A]) && !load_m;
+                      inst[`SEL0_AM] && inst[`SEL0_A]);
     assign inst_addr = !stall_reset ? new_pc[PC_WIDTH-1:1] : pc[PC_WIDTH-1:1];
 
     always @(posedge clk)

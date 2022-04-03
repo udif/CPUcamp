@@ -11,7 +11,7 @@
 // *********************************************************************************
 // *** don't forget to change PLL_MULTIPLY value in CPU_GARAGE.sdc file as well! ***
 // *********************************************************************************
-`define PLL_MULTIPLY 295
+`define PLL_MULTIPLY 200
 `define PLL_DIVIDE 100
 
 

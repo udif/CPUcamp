@@ -33,9 +33,9 @@ VERILATOR = $(VERILATOR_ROOT)/bin/verilator
 endif
 
 default:
-	$(VERILATOR) -cc --exe --build -j top.sv cpu.sv  alu.sv  ram_sim.v  rom_sim.v  sim_main.cpp
+	$(VERILATOR) -cc --exe --trace --build -j top.sv cpu.sv  alu.sv  ram_sim.v  rom_sim.v  sim_main.cpp
 	@echo "-- RUN ---------------------"
-	obj_dir/Vtop
+	obj_dir/Vtop +trace
 	@echo "-- DONE --------------------"
 
 ######################################################################
