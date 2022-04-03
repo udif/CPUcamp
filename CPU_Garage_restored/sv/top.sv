@@ -122,39 +122,43 @@ module top(
 /* verilator lint_on WIDTH */
 
     ram #(.DATA_WIDTH(DATA_WIDTH),
-          .RAM_REGISTER_COUNT(RAM_REGISTER_COUNT))
-        ram_inst (
-            .address_a (ram_address[$clog2(RAM_REGISTER_COUNT)-1:0]),
-            .address_b ($clog2(RAM_REGISTER_COUNT)'(RAM_SCREEN_OFFSET +  vga_word_address)),
-            .clock_a (cpu_clk),
-            .clock_b (CLK_50),
-            .data_a (ram_out_m),
-            .data_b (16'b0),
-            .wren_a (ram_write_m),
-            .wren_b (~resetN),
-            .q_a (rdata),
-            .q_b (vga_word_value)
-        );
+        .RAM_REGISTER_COUNT(RAM_REGISTER_COUNT)
+    ) ram_inst (
+        .address_a (ram_address[$clog2(RAM_REGISTER_COUNT)-1:0]),
+        .address_b ($clog2(RAM_REGISTER_COUNT)'(RAM_SCREEN_OFFSET +  vga_word_address)),
+        .clock_a (cpu_clk),
+        .clock_b (CLK_50),
+        .data_a (ram_out_m),
+        .data_b (16'b0),
+        .wren_a (ram_write_m),
+        .wren_b (~resetN),
+        .q_a (rdata),
+        .q_b (vga_word_value)
+    );
 
-    ram_cache #(.DATA_WIDTH(DATA_WIDTH),
-          .RAM_REGISTER_COUNT(RAM_REGISTER_COUNT))
-        ram_cache_inst (
-            .clk(cpu_clk),
-            .resetN(resetN),
+    // cache the 0-7 address region with 4 entries, covering addresses 1-4 inclusive
+    ram_cache #(
+        .DATA_WIDTH(DATA_WIDTH),
+        .RAM_REGISTER_COUNT(RAM_REGISTER_COUNT),
+        .INDEX_BITS(2),
+        .TAG_BITS(1)
+    ) ram_cache_inst (
+        .clk(cpu_clk),
+        .resetN(resetN),
 
-            .cpu_in_m(cpu_in_m),
-            .cpu_out_m(cpu_out_m),
-            .cpu_write_m(cpu_write_m),
-            .cpu_read_m(cpu_read_m),
-            .cpu_data_addr(cpu_data_addr[$clog2(RAM_REGISTER_COUNT)-1:0]),
+        .cpu_in_m(cpu_in_m),
+        .cpu_out_m(cpu_out_m),
+        .cpu_write_m(cpu_write_m),
+        .cpu_read_m(cpu_read_m),
+        .cpu_data_addr(cpu_data_addr[$clog2(RAM_REGISTER_COUNT)-1:0]),
 
-            .cpu_stall(cpu_stall),
+        .cpu_stall(cpu_stall),
 
-            .ram_in_m(rdata),
-            .ram_out_m(ram_out_m),
-            .ram_write_m(ram_write_m),
-            .ram_data_addr(ram_address[$clog2(RAM_REGISTER_COUNT)-1:0])
-);
+        .ram_in_m(rdata),
+        .ram_out_m(ram_out_m),
+        .ram_write_m(ram_write_m),
+        .ram_data_addr(ram_address[$clog2(RAM_REGISTER_COUNT)-1:0])
+    );
 
 `ifndef NO_IO
     vga #(.DATA_WIDTH(16), .BITS_PER_MEMORY_PIXEL_X(BITS_PER_MEMORY_PIXEL_X), .BITS_PER_MEMORY_PIXEL_Y(BITS_PER_MEMORY_PIXEL_Y),
