@@ -70,8 +70,8 @@ module cpu #(
     // path from in_m, through the ALU, to new_pc and the instruction ROM
     
     wire dual_issue = !inst[`SEL0_A] &&
-                       inst[`SEL1_A] &&
-                      !inst[`SEL1_LT0] && !inst[`SEL1_0] && !inst[`SEL1_GT0];
+                       inst[`SEL1_A];
+                       //!inst[`SEL1_LT0] && !inst[`SEL1_0] && !inst[`SEL1_GT0];
     wire [1:0]pc_inc = dual_issue ? 2'd2 : 2'd1;
 
     // ALU flags
@@ -89,8 +89,10 @@ module cpu #(
                   (dual_issue || pc[0]) && ( inst[`SEL1_A] && inst[`SEL1_LD_D]);
     wire load_m =               !pc[0]  && ( inst[`SEL0_A] && inst[`SEL0_LD_M]) ||
                   (dual_issue || pc[0]) && ( inst[`SEL1_A] && inst[`SEL1_LD_M]);
-    wire jump =   pc[0] ?   inst[`SEL1_A] && ((less_than_zero && inst[`SEL1_LT0]) || (zero && inst[`SEL1_0]) || (greater_than_zero && inst[`SEL1_GT0])) :
-                            inst[`SEL0_A] && ((less_than_zero && inst[`SEL0_LT0]) || (zero && inst[`SEL0_0]) || (greater_than_zero && inst[`SEL0_GT0]));
+    wire jump0 = !pc[0] && inst[`SEL0_A] && ((less_than_zero && inst[`SEL0_LT0]) || (zero && inst[`SEL0_0]) || (greater_than_zero && inst[`SEL0_GT0]));
+    wire jump1 =           inst[`SEL1_A] && ((less_than_zero && inst[`SEL1_LT0]) || (zero && inst[`SEL1_0]) || (greater_than_zero && inst[`SEL1_GT0])) ;
+    wire jump_a = jump1 && pc[1] && !dual_issue;
+    wire jump_inst = jump0 || jump1 && dual_issue;
 
     //select if the ALU's Y input is from ram or from A register
     wire sel_am = (dual_issue || pc[0]) ? inst[`SEL1_AM] :
@@ -98,8 +100,9 @@ module cpu #(
 
     // if we autoinc, we go to the beginning of the next 32-bit word
     wire [PC_WIDTH-1:0] new_pc =
-        jump ? a[PC_WIDTH-1:0] :
-        pc + {{(PC_WIDTH-2){1'b0}}, pc_inc};
+        jump_inst ? inst[PC_WIDTH-1:0] :
+        jump_a    ? a[PC_WIDTH-1:0] :
+                    pc + {{(PC_WIDTH-2){1'b0}}, pc_inc};
 
     wire [15:0] next_a =
         stall ? a :
