@@ -1,2 +1,13 @@
 dv/obj_dir
-db
+**/*.bak
+**/ram_inst.v
+**/rom_inst.v
+**/greybox_tmp
+**/*.qar
+**/*.qarlog
+**/*.rpt
+**/incremental_db
+**/db
+**/*.json
+dv*/*log*
+dv*/obj_dir
