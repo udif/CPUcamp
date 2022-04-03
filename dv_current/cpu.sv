@@ -120,7 +120,7 @@ module cpu #(
                       inst[`SEL0_AM] && inst[`SEL0_A]);
     assign inst_addr = !stall_reset ? new_pc[PC_WIDTH-1:1] : pc[PC_WIDTH-1:1];
 
-    always @(posedge clk)
+    always @(posedge clk or negedge resetN)
         if (!resetN)
             pc <= {PC_WIDTH{1'b0}};
         else if (!stall)

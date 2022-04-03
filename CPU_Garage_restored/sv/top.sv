@@ -89,8 +89,15 @@ module top(
 
     logic [DATA_WIDTH-1:0] vga_word_address;
 
-    logic resetN;
-    assign resetN = BUTTON[0];
+    logic resetN, rst1, rst2;
+
+    // make sure that when BUTTON[0] is released, it goes to 1 synchronously
+    always @(posedge cpu_clk)
+    begin
+        rst1 <=  BUTTON[0];
+        rst2 <=  rst1;
+    end
+    assign resetN = (rst2 && BUTTON[0]);
 
     logic finished;
 

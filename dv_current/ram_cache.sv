@@ -56,7 +56,7 @@ module ram_cache # (
     wire zero_page = (cpu_addr_zero == '0);
 
     assign cache_hit = valid[index] && zero_page && (cpu_addr_tag == tag[index]) ;
-    always @(posedge clk)
+    always @(posedge clk or negedge resetN)
         if (!resetN)
             valid <= {CACHE_SIZE{1'b0}};
         else if (cpu_write_m && zero_page)

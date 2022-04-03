@@ -52,7 +52,7 @@ create_clock -name {CLK_50} -period 20.000 -waveform { 0.000 10.000 } [get_ports
 # **************************************************************************
 create_generated_clock -name {pll:pll_inst|altpll:altpll_component|pll_altpll:auto_generated|wire_pll1_clk[0]} \
                        -source [get_pins {pll_inst|altpll_component|auto_generated|pll1|inclk[0]}] \
-                       -duty_cycle 50/1 -multiply_by 200 -divide_by 100 \
+                       -duty_cycle 50/1 -multiply_by 210 -divide_by 100 \
                        -master_clock {CLK_50} [get_pins {pll_inst|altpll_component|auto_generated|pll1|clk[0]}] 
 
 
@@ -84,7 +84,9 @@ create_generated_clock -name {pll:pll_inst|altpll:altpll_component|pll_altpll:au
 # Set Clock Groups
 #**************************************************************
 
-set_clock_groups -asynchronous -group [get_clocks {altera_reserved_tck}] 
+set_clock_groups -exclusive -group [get_clocks {altera_reserved_tck}] 
+# Set clkA and clkB to be mutually exclusive clocks.
+# set_clock_groups -exclusive -group {CLK_50} -group {pll:pll_inst|altpll:altpll_component|pll_altpll:auto_generated|wire_pll1_clk[0]}
 
 
 #**************************************************************

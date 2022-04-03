@@ -60,6 +60,14 @@ int main(int argc, char** argv, char** env) {
     const std::unique_ptr<Vtop> top{new Vtop{contextp.get(), "TOP"}};
 
     top->BUTTON = 0;
+    for (int i = 0; i < 5; i++) {
+    	top->CLK_50 = 0;
+        contextp->timeInc(1);
+    	top->eval();
+        top->CLK_50 = 1;
+        contextp->timeInc(1);
+        top->eval();
+    }
     int wide = 0;
     int t;
     // Simulate until $finish
@@ -72,7 +80,7 @@ int main(int argc, char** argv, char** env) {
         contextp->timeInc(1);
         top->eval();
         t = contextp->time();
-        if (t > 4)
+        if (t > 10)
             top->BUTTON = 1;
         if (top->top->ram_write_m) {
             //std::cout << "address=" << std::setfill('0') << std::setw(3) << std::hex << top->top->__PVT__cpu_inst__DOT__pc;
@@ -81,7 +89,7 @@ int main(int argc, char** argv, char** env) {
             std::cout << " write_data="  << std::setfill('0') << std::setw(5) << std::dec << top->top->cpu_out_m;
             std::cout << std::endl;
         }
-        if (top->top->__PVT__cpu_inst__DOT__pc > 159) {
+        if (top->top->__PVT__rst2 && top->top->__PVT__cpu_inst__DOT__pc > 159) {
         //if (x++ > 10)
             std::cout << "Got to final address\n";
             break;
