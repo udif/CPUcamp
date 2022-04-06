@@ -7,13 +7,8 @@
 // max settings that worked for me:
 // kiwi -       250/100
 // de10-lite -  260/100
-
-// *********************************************************************************
-// *** don't forget to change PLL_MULTIPLY value in CPU_GARAGE.sdc file as well! ***
-// *********************************************************************************
-`define PLL_MULTIPLY 195
+`define PLL_MULTIPLY 290
 `define PLL_DIVIDE 100
-
 
 //KIWI or DE10_LITE
 `include "platform.sv"

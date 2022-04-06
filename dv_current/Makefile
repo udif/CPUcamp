@@ -33,7 +33,23 @@ VERILATOR = $(VERILATOR_ROOT)/bin/verilator
 endif
 
 default:
-	$(VERILATOR) -cc --exe --trace --build -j top.sv cpu.sv  alu.sv  ram_sim.v  rom_sim.v  sim_main.cpp
+	# removing --trace causes issues with test not ending as it seems to start fetching instructions
+	# from supposedly-blank ROM areas around PC=400 and above.
+	$(VERILATOR) -cc --exe --trace --build -j top.sv cpu.sv alu.sv ram_sim.v rom_sim.v vga.sv hex_display.sv perf_counter.sv sim_main.cpp
+	@echo "-- RUN ---------------------"
+	obj_dir/Vtop 
+	@echo "-- DONE --------------------"
+
+fast:
+	$(VERILATOR) -cc --exe --build -j top.sv cpu.sv alu.sv ram_sim.v rom_sim.v vga.sv hex_display.sv perf_counter.sv sim_main.cpp
+	@echo "-- RUN ---------------------"
+	obj_dir/Vtop
+	@echo "-- DONE --------------------"
+
+trace:
+	# removing --trace causes issues with test not ending as it seems to start fetching instructions
+	# from supposedly-blank ROM areas around PC=400 and above.
+	$(VERILATOR) -cc --exe --trace --build -j top.sv cpu.sv alu.sv ram_sim.v rom_sim.v vga.sv hex_display.sv perf_counter.sv sim_main.cpp
 	@echo "-- RUN ---------------------"
 	obj_dir/Vtop +trace
 	@echo "-- DONE --------------------"

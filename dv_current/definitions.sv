@@ -11,8 +11,6 @@
 `define PLL_DIVIDE 100
 
 `define NO_CLKCTRL
-`define NO_IO
-`define NO_PERF
 
 //KIWI or DE10_LITE
 `include "platform.sv"

@@ -22,7 +22,6 @@ module top(
     // You may change the width of the instruction (e.g. make a 32-bit cpu).
     // You may change the width of the data (e.g. read and write 32 bit data into the ram).
     parameter DATA_WIDTH = 16, INSTR_WIDTH = 32; // ram and instruction widths in bits (default is 16 for both).
-    parameter PC_WIDTH = 10;
     parameter ROM_REGISTER_COUNT = 2**9, RAM_REGISTER_COUNT = 2**10;
 
     // VGA Settings
@@ -70,18 +69,15 @@ module top(
 `endif
 
     // RAM
-    logic [14:0]ram_address  /*verilator public*/ ;
-    logic ram_write_m  /*verilator public*/ ;
-    logic [DATA_WIDTH-1:0] rdata  /*verilator public*/ ;
-    logic [DATA_WIDTH-1:0] ram_out_m  /*verilator public*/ ;
+    logic write_m /*verilator public*/ ;
+    logic [DATA_WIDTH-1:0] out_m /*verilator public*/ ;
+    logic [14:0]read_data_addr /*verilator public*/ ;
+    logic [14:0]write_data_addr /*verilator public*/ ;
+    logic [DATA_WIDTH-1:0] in_m /*verilator public*/ ;
     // ROM
     logic [INSTR_WIDTH-1:0] instruction  /*verilator public*/ ;
-    logic [14:0] inst_address  /*verilator public*/ ;
-    // CPU DATA
-    logic [14:0]cpu_data_addr;
-    logic cpu_read_m, cpu_write_m, cpu_stall;
-    logic [DATA_WIDTH-1:0] cpu_in_m;
-    logic [DATA_WIDTH-1:0] cpu_out_m  /*verilator public*/ ;
+    // instruction bus address width is driven by PC width minus 1 (we pack 2 instructions in a word)
+    logic [$clog2(ROM_REGISTER_COUNT)-1:0] inst_address  /*verilator public*/ ;
 
     logic [9:0] pixel_x;
     logic [9:0] pixel_y;
@@ -89,7 +85,8 @@ module top(
 
     logic [DATA_WIDTH-1:0] vga_word_address;
 
-    logic resetN, rst1, rst2;
+    logic resetN;
+    logic rst1, rst2;
 
     // make sure that when BUTTON[0] is released, it goes to 1 synchronously
     always @(posedge cpu_clk)
@@ -100,19 +97,6 @@ module top(
     assign resetN = (rst2 && BUTTON[0]);
 
     logic finished;
-
-`ifdef VERILATOR
-    initial
-    begin
-        if ($test$plusargs("trace") != 0)
-        begin
-            $display("[%0t] Tracing to logs/vlt_dump.vcd...\n", $time);
-            $dumpfile("logs/vlt_dump.vcd");
-            $dumpvars();
-        end
-        $display("[%0t] Model running...\n", $time);
-   end
-`endif
 
 /* verilator lint_off WIDTH */
     always_comb
@@ -128,46 +112,38 @@ module top(
     end
 /* verilator lint_on WIDTH */
 
+    // VGA : 1 rd port, CPU 1 WR port
     ram #(.DATA_WIDTH(DATA_WIDTH),
         .RAM_REGISTER_COUNT(RAM_REGISTER_COUNT)
-    ) ram_inst (
-        .address_a (ram_address[$clog2(RAM_REGISTER_COUNT)-1:0]),
+    ) ram_vga_inst (
+        .address_a (write_data_addr[$clog2(RAM_REGISTER_COUNT)-1:0]),
         .address_b ($clog2(RAM_REGISTER_COUNT)'(RAM_SCREEN_OFFSET +  vga_word_address)),
         .clock_a (cpu_clk),
         .clock_b (CLK_50),
-        .data_a (ram_out_m),
+        .data_a (out_m),
         .data_b (16'b0),
-        .wren_a (ram_write_m),
+        .wren_a (write_m),
         .wren_b (~resetN),
-        .q_a (rdata),
+        .q_a (),
         .q_b (vga_word_value)
     );
 
-    // cache the 0-7 address region with 4 entries, covering addresses 1-4 inclusive
-    ram_cache #(
-        .DATA_WIDTH(DATA_WIDTH),
-        .RAM_REGISTER_COUNT(RAM_REGISTER_COUNT),
-        .INDEX_BITS(2),
-        .TAG_BITS(1)
-    ) ram_cache_inst (
-        .clk(cpu_clk),
-        .resetN(resetN),
-
-        .cpu_in_m(cpu_in_m),
-        .cpu_out_m(cpu_out_m),
-        .cpu_write_m(cpu_write_m),
-        .cpu_read_m(cpu_read_m),
-        .cpu_data_addr(cpu_data_addr[$clog2(RAM_REGISTER_COUNT)-1:0]),
-
-        .cpu_stall(cpu_stall),
-
-        .ram_in_m(rdata),
-        .ram_out_m(ram_out_m),
-        .ram_write_m(ram_write_m),
-        .ram_data_addr(ram_address[$clog2(RAM_REGISTER_COUNT)-1:0])
+    // CPU: 1 wr + 1 rd port
+    ram #(.DATA_WIDTH(DATA_WIDTH),
+        .RAM_REGISTER_COUNT(RAM_REGISTER_COUNT)
+    ) ram_cpu_inst (
+        .address_a (write_data_addr[$clog2(RAM_REGISTER_COUNT)-1:0]),
+        .address_b (read_data_addr[$clog2(RAM_REGISTER_COUNT)-1:0]),
+        .clock_a (cpu_clk),
+        .clock_b (cpu_clk),
+        .data_a (out_m),
+        .data_b (16'b0),
+        .wren_a (write_m),
+        .wren_b (1'b0),
+        .q_a (),
+        .q_b (in_m)
     );
 
-`ifndef NO_IO
     vga #(.DATA_WIDTH(16), .BITS_PER_MEMORY_PIXEL_X(BITS_PER_MEMORY_PIXEL_X), .BITS_PER_MEMORY_PIXEL_Y(BITS_PER_MEMORY_PIXEL_Y),
           .HEX_START_X(HEX_START_X), .HEX_DIGIT_WIDTH(HEX_DIGIT_WIDTH))
         vga_inst(.CLK_50(CLK_50),
@@ -204,9 +180,7 @@ module top(
                     .hex_drawing_request(hex_drawing_request),
                     .hex_rgb(hex_rgb)
                 );
-`endif
-  
-`ifndef NO_PERF
+
     // performance counter
     logic perf_drawing_request;
     logic [7:0] perf_rgb;
@@ -221,7 +195,7 @@ module top(
                      .resetN(resetN),
                      .pixel_x(pixel_x),
                      .pixel_y(pixel_y),
-                     .pc(inst_address[$clog2(ROM_REGISTER_COUNT)-1:0]),
+                     .pc({{16-$bits(inst_address){1'b0}}, inst_address}),
                      .SW(SW),
 
                      .perf_drawing_request(perf_drawing_request),
@@ -234,34 +208,30 @@ module top(
                      .LED(LED),
                      .finished(finished)
                  );
-`endif
 
     rom #(.INSTR_WIDTH(INSTR_WIDTH),
           .ROM_REGISTER_COUNT(ROM_REGISTER_COUNT))
         rom_inst
         (
-            .address(inst_address[$clog2(ROM_REGISTER_COUNT)-1:0]),
+            .address(inst_address),
             .clock(cpu_clk),
             .q(instruction)
         );
 
-
-    cpu #(
-        .PC_WIDTH(PC_WIDTH)
-    ) cpu_inst (
+    wire [(14-$bits(inst_address))-1:0]dummy_pad;
+    cpu cpu_inst (
             .clk(cpu_clk),
             .resetN(resetN),
 
             .SW(SW),
 
             .inst(instruction),
-            .inst_addr(inst_address[$clog2(ROM_REGISTER_COUNT)-1:0]),
+            .inst_addr({dummy_pad, inst_address}),
 
-            .in_m(cpu_in_m),
-            .out_m(cpu_out_m),
-            .write_m(cpu_write_m),
-            .read_m(cpu_read_m),
-            .stall(cpu_stall),
-            .data_addr(cpu_data_addr)
+            .out_m(out_m),
+            .write_m(write_m),
+            .write_data_addr(write_data_addr),
+            .in_m(in_m),
+            .read_data_addr(read_data_addr)
         );
 endmodule
