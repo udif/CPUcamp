@@ -11,3 +11,4 @@ dv/obj_dir
 **/*.json
 dv*/*log*
 dv*/obj_dir
+CPU_Garage_restored/CPU_Garage.stp
