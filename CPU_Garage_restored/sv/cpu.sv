@@ -152,7 +152,6 @@ module cpu (
     logic load_a_d, load_d_d, load_m_d;
     logic [5:0]alu_fn_d;
     logic sel_am_nobypass_d, sel_a_d;
-    logic [15:0]sel_a_inst_d;
     logic speculative_d;
     logic jump0_lt_d, jump0_0_d, jump0_gt_d;
     logic jump1_lt_d, jump1_0_d, jump1_gt_d;
@@ -188,8 +187,7 @@ module cpu (
         valid_d <= !empty_out;
         // in dual issue mode, alu is processing inst1 with A data from inst0,
         // but if m data was written 1 cycle earlier, we need to bypass it.
-        sel_am_nobypass_d <= sel_am && !in_m_bypass_next;
-        sel_a_inst_d <= {16{dual_issue & ~sel_am}} & {1'b0, inst_out[0 +: 15]};
+        sel_am_nobypass_d <= sel_am && !in_m_bypass;
         sel_a_d <= !sel_am && !dual_issue;
         dual_issue_d <= dual_issue;
         issue_sel_d <= issue_sel;
@@ -232,16 +230,15 @@ module cpu (
     // *********************
     // *** execute stage ***
     // *********************
+    wire [15:0]sel_a_inst = {16{dual_issue & ~sel_am}} & {1'b0, inst_out[0 +: 15]};
 
     wire [15:0]am =
-        {16{in_m_bypass}} & out_m_q |
+        in_m_bypassed_by_out_m |
         {16{sel_am_nobypass_d}} & in_m |
-        sel_a_inst_d |
         {16{sel_a_d}} & a; // decide whether the alu will use the data in memory or in the A register
     
     wire [15:0]alu_out;
-    logic in_m_bypass;
-    logic [15:0]out_m_q;
+    logic [15:0]in_m_bypassed_by_out_m;
 
     reg [15:0] a;
     reg [15:0] d;
@@ -263,12 +260,13 @@ module cpu (
     // supporting this for the 1% of jumps we have at inst[1] would have cost us in a long
     // path from in_m, through the ALU, to new_pc and the instruction ROM
 
-    wire in_m_bypass_next = write_m && sel_am && (read_data_addr == write_data_addr);
+    wire in_m_bypass = write_m && sel_am && (read_data_addr == write_data_addr);
     always@(posedge clk)
     begin
         // if next cycle read is the same address we write, and we need it for the ALU, bypass value
-        in_m_bypass <= in_m_bypass_next;
-        out_m_q <= out_m;
+        in_m_bypassed_by_out_m <=
+            {16{in_m_bypass}} & out_m |
+            sel_a_inst;
     end
 
     // ALU flags

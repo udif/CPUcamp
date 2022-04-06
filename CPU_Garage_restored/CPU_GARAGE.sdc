@@ -50,11 +50,14 @@ create_clock -name {CLK_50} -period 20.000 -waveform { 0.000 10.000 } [get_ports
 # **************************************************************************
 # *** Synchronize "multiple_by" value with the one from "definitions.sv" ***
 # **************************************************************************
-create_generated_clock -name {pll:pll_inst|altpll:altpll_component|pll_altpll:auto_generated|wire_pll1_clk[0]} \
-                       -source [get_pins {pll_inst|altpll_component|auto_generated|pll1|inclk[0]}] \
-                       -duty_cycle 50/1 -multiply_by 290 -divide_by 100 \
-                       -master_clock {CLK_50} [get_pins {pll_inst|altpll_component|auto_generated|pll1|clk[0]}] 
+#create_generated_clock -name {pll:pll_inst|altpll:altpll_component|pll_altpll:auto_generated|wire_pll1_clk[0]} \
+#                       -source [get_pins {pll_inst|altpll_component|auto_generated|pll1|inclk[0]}] \
+#                       -duty_cycle 50/1 -multiply_by 290 -divide_by 100 \
+#                       -master_clock {CLK_50} [get_pins {pll_inst|altpll_component|auto_generated|pll1|clk[0]}] 
 
+create_generated_clock -name cpu_clk -source [get_ports {CLK_50}] \
+                       -divide_by 100 -multiply_by 340 \
+                       [get_pins {clkctrl|altclkctrl_0|clkctrl_altclkctrl_0_sub_component|clkctrl1|outclk}]
 
 #**************************************************************
 # Set Clock Latency
