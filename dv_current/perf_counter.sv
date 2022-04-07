@@ -37,9 +37,9 @@ module perf_counter(
         $display("[%0t] Model running...\n", $time);
         if ($test$plusargs("trace") != 0)
         begin
-            $display("[%0t] Tracing to logs/vlt_dump.vcd...\n", $time);
-            $dumpfile("logs/vlt_dump.fst");
-            $dumpvars();
+            //$display("[%0t] Tracing to logs/vlt_dump.vcd...\n", $time);
+            //$dumpfile("logs/vlt_dump.vcd");
+            //$dumpvars();
         end
         for (i = 0; i < $size(ram_vga_inst.mem); i = i + 1)
         begin
@@ -48,12 +48,18 @@ module perf_counter(
         end
     end
 
+    integer dumpflag = 0;
     always @(posedge CLK_50)
     begin
         if (cpu_inst.pc == 160)
             $write(ram_cpu_inst.mem[4], "\r");
-        //if (cpu_inst.pc > 162)
-        //    $display(cpu_inst.pc);
+        if (dumpflag == 0 /*&& cpu_inst.pc > 150 && ram_cpu_inst.mem[4] < 2 */)
+        begin
+            dumpflag = 1;
+            $display("[%0t] Tracing to logs/vlt_dump.vcd...\n", $time);
+            $dumpfile("logs/vlt_dump.vcd");
+            $dumpvars();
+        end
         if (cpu_inst.pc > 400) // should be 1023 but there is a verilator issue with ROM content not being 0
         begin
             $display("Got to final address\n");
