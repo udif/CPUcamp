@@ -123,7 +123,7 @@ module cpu (
     logic empty_out, speculative_out;
     logic [PC_WIDTH-2:0]fetch_addr_out;
     logic [31:0]inst_out;
-    logic pop, pop_d, pop_q2;
+    logic pop, pop_d;
 
     // always pop, UNLESS output output valid, we don't have dual issue, and are only on inst0
     // (must keep output for inst1 next cycle)
@@ -406,8 +406,6 @@ module cpu (
     end
             
     wire [15:0] next_a =
-        //(!pc[0] && !inst_out_d[`SEL0_A]) ? {1'b0, inst_out_d[0  +: 15]} :
-        //( pc[0] && !inst_out_d[`SEL1_A]) ? {1'b0, inst_out_d[16 +: 15]} :
         next_a_inst_sel ? {1'b0, next_a_inst} :
         alu_out;
     wire [15:0] next_d =
