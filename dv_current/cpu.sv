@@ -255,7 +255,7 @@ module cpu (
         jump1_gt_d <= valid_out && inst1_out && inst_out[`SEL1_GT0];
         // If this signal is active, the decode stage is carrying a speculative word
         speculative_d <= speculative_out && !empty_out;
-        inst_out_d <= {32{!empty_out}} & inst_out; // check if we need this bit clearing, even if it is cheap
+        inst_out_d <= inst_out;
         jump_a_en_d <=  pop_d && !dual_issue_out; // TODO try replacing with saomething more reliable
 
         valid_d <= valid_out;
@@ -393,9 +393,22 @@ module cpu (
         !missed_jump ? pc + {{(PC_WIDTH-2){1'b0}}, pc_inc_d} :
                      pc;
 
+    logic [14:0] next_a_inst;
+    logic next_a_inst_sel;
+    always @(posedge clk)
+    begin
+        next_a_inst <=
+            (!pc0_out && !inst_out[`SEL0_A]) ? inst_out[0  +: 15] :
+                                               inst_out[16 +: 15];
+        next_a_inst_sel <=
+            (!pc0_out && !inst_out[`SEL0_A]) ||
+            ( pc0_out && !inst_out[`SEL1_A]);
+    end
+            
     wire [15:0] next_a =
-        (!pc[0] && !inst_out_d[`SEL0_A]) ? {1'b0, inst_out_d[0  +: 15]} :
-        ( pc[0] && !inst_out_d[`SEL1_A]) ? {1'b0, inst_out_d[16 +: 15]} :
+        //(!pc[0] && !inst_out_d[`SEL0_A]) ? {1'b0, inst_out_d[0  +: 15]} :
+        //( pc[0] && !inst_out_d[`SEL1_A]) ? {1'b0, inst_out_d[16 +: 15]} :
+        next_a_inst_sel ? {1'b0, next_a_inst} :
         alu_out;
     wire [15:0] next_d =
         alu_out;
