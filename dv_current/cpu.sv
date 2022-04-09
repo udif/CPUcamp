@@ -133,7 +133,7 @@ module cpu (
         else
         begin
             fetch_addr_q <= fetch_addr;
-            inst_valid <= (depth < 4'h6) ? 1'b1 : 1'b0;
+            inst_valid <= (depth < 4'h4) ? 1'b1 : 1'b0;
             inst_valid_q <= inst_valid;
             //inst_valid_q <= inst_valid && !almost_full_out && !(!dual_issue_out && !empty_out);
             inst_speculative_q <= inst_speculative; // same timing as inst
@@ -461,7 +461,8 @@ module cpu (
     logic next_a_inst_sel_d;
     logic [14:0] next_a_inst_d;
     wire [14:0]next_a_inst =
-        quad_issue_out ? inst_wide_d[32 +: 15] :
+        (quad_issue_out && !inst_wide[`SEL2_A]) ? inst_wide[32 +: 15] :
+        (quad_issue_out && !inst_wide[`SEL0_A]) ? inst_wide[0 +: 15] :
         (!pc0_out && !inst_out[`SEL0_A]) ? inst_out[0  +: 15] :
                                            inst_out[16 +: 15];
     always @(posedge clk)
@@ -477,7 +478,8 @@ module cpu (
         next_a_inst_sel_d ? {1'b0, next_a_inst_d} :
         alu_out;
     wire [15:0] next_d =
-        (quad_issue_d && inst_wide_d[`SEL3_LD_D] &&(inst_wide_d[`SEL3_C] == 6'h30) ) ? in_m2 :
+        (quad_issue_d && inst_wide_d[`SEL3_LD_D] && !inst_wide_d[`SEL3_AM] && (inst_wide_d[`SEL3_C] == 6'h30) ) ? next_a :
+        (quad_issue_d && inst_wide_d[`SEL3_LD_D] &&  inst_wide_d[`SEL3_AM] && (inst_wide_d[`SEL3_C] == 6'h30) ) ? in_m2 :
         alu_out;
     assign write_data_addr =
         (quad_issue_d && inst_wide_d[`SEL3_LD_M]) ?  inst_wide_d[32 +: 15] :
