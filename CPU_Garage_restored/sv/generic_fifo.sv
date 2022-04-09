@@ -15,15 +15,14 @@ module generic_fifo #(
 
     output reg full,
     output reg empty,
-    output [WIDTH-1:0]rdata
-
+    output [WIDTH-1:0]rdata,
+    output [D:0]depth
 );
     localparam D = $clog2(DEPTH);
 
     logic [D:0]rptr;
     logic [D:0]wptr;
-    logic [D:0]dptr;
-    assign dptr = wptr - rptr;
+    assign depth = wptr - rptr;
 
     logic [WIDTH-1:0]mem[0:DEPTH-1];
 
@@ -56,11 +55,11 @@ module generic_fifo #(
             empty <=
                 flush ? 1'b1 :
                 (push && (!pop || empty)) ?  1'b0 :
-                (pop && !push && (dptr == {{(D){1'b0}}, 1'b1})) ? 1'b1 :
+                (pop && !push && (depth == {{(D){1'b0}}, 1'b1})) ? 1'b1 :
                 empty;
             full <=
                 flush ? 1'b0 :
-                (push && !pop && (dptr == (DEPTH - {{D{1'b0}}, 1'b1}))) ?  1'b1 :
+                (push && !pop && (depth == (DEPTH - {{D{1'b0}}, 1'b1}))) ?  1'b1 :
                 (pop && !push) ? 1'b0 :
                 full;
         end

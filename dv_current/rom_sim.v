@@ -14,7 +14,7 @@ module rom # (
   	reg [$clog2(ROM_REGISTER_COUNT) - 1:0]address_q;
 
   	initial
-    	$readmemh("rom_plain32.hex", mem);
+    	$readmemh("rom_plain64.hex", mem);
 
   	always @(posedge clock)
    	begin  

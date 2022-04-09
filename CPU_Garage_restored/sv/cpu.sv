@@ -10,15 +10,38 @@
 
 `define SEL1_A    (15 + 16)
 `define SEL1_AM   (12 + 16)
-`define SEL1_C    (6 + 16) +: 6
-`define SEL1_LD_A (5 + 16)
-`define SEL1_LD_D (4 + 16)
-`define SEL1_LD_M (3 + 16)
-`define SEL1_LT0  (2 + 16)
-`define SEL1_0    (1 + 16)
-`define SEL1_GT0  (0 + 16)
+`define SEL1_C    (6  + 16) +: 6
+`define SEL1_LD_A (5  + 16)
+`define SEL1_LD_D (4  + 16)
+`define SEL1_LD_M (3  + 16)
+`define SEL1_LT0  (2  + 16)
+`define SEL1_0    (1  + 16)
+`define SEL1_GT0  (0  + 16)
+
+`define SEL2_A    (15 + 32)
+`define SEL2_AM   (12 + 32)
+`define SEL2_C    (6  + 32) +: 6
+`define SEL2_LD_A (5  + 32)
+`define SEL2_LD_D (4  + 32)
+`define SEL2_LD_M (3  + 32)
+`define SEL2_LT0  (2  + 32)
+`define SEL2_0    (1  + 32)
+`define SEL2_GT0  (0  + 32)
+
+`define SEL3_A    (15 + 48)
+`define SEL3_AM   (12 + 48)
+//`define SEL3_C    (6  + 48) +: 6
+`define SEL3_C    59:54
+`define SEL3_LD_A (5  + 48)
+`define SEL3_LD_D (4  + 48)
+`define SEL3_LD_M (3  + 48)
+`define SEL3_LT0  (2  + 48)
+`define SEL3_0    (1  + 48)
+`define SEL3_GT0  (0  + 48)
 
 `define PC_WIDTH 15
+
+`define FETCH_W  (`PC_WIDTH - 2)
 
 module cpu (
         input logic         clk,
@@ -33,19 +56,23 @@ module cpu (
         // RAM read interface
         //output logic        read_m,
         output logic [14:0] read_data_addr,
+        output logic [14:0] read_data2_addr,
         input logic [15:0]  in_m,
+        input logic [15:0]  in_m2,
 
         // ROM interface, 1 cycle latency
-        output logic [`PC_WIDTH-2:0] inst_addr,
-        input logic [31:0]inst
+        output logic [`FETCH_W-1:0] inst_addr,
+        input logic [63:0]inst
     );
 
     localparam PC_WIDTH = `PC_WIDTH;
+    localparam FETCH_W = `FETCH_W;
+    localparam DW = 32;
 
     //////////////////////////////////////////
     reg [PC_WIDTH-1:0] pc;
-    logic [PC_WIDTH-2:0] fetch_addr;
-    logic [PC_WIDTH-2:0] fetch_addr_q;
+    logic [FETCH_W-1:0] fetch_addr;
+    logic [FETCH_W-1:0] fetch_addr_q;
     logic [15:0]inst_high_q;
 
     // **********************
@@ -64,24 +91,27 @@ module cpu (
     wire speculative_jump0 = inst[`SEL0_A] && (inst[`SEL0_LT0] || inst[`SEL0_0] || inst[`SEL0_GT0]) && !inst_high_q[`SEL0_A];
     // check if we have a speculative jump on inst1 (31:16)
     wire speculative_jump1 = !inst[`SEL0_A] && inst[`SEL1_A] && (inst[`SEL1_LT0] || inst[`SEL1_0] || inst[`SEL1_GT0]);
+    wire speculative_jump2 = !inst[`SEL1_A] && inst[`SEL2_A] && (inst[`SEL2_LT0] || inst[`SEL2_0] || inst[`SEL2_GT0]);
+    wire speculative_jump3 = !inst[`SEL2_A] && inst[`SEL3_A] && (inst[`SEL3_LT0] || inst[`SEL3_0] || inst[`SEL3_GT0]);
     assign fetch_addr =
-        !inst_valid_q ? fetch_addr_q :
-        // assume jump on inst1 is taken
-        speculative_jump1 && !inst_speculative_q ? inst[PC_WIDTH-1:1] :
-        // assume jump on inst0 is taken
-        // if we stall on empty FIFO due to previous misprediction and wait for inst1, we can't prefetch based on inst0 jump!!!
-        speculative_jump0 && !inst_speculative_q && !(empty_out && pc[0]) ? inst_high_q[PC_WIDTH-1:1] :
         // restart on missed jump
-        missed_flush ? pc[PC_WIDTH-1:1] :
+        missed_flush ? pc[PC_WIDTH-1:2] :
+        !inst_valid_q ? fetch_addr_q :
+        // assume jump is taken
+        // if we stall on empty FIFO due to previous misprediction and wait for inst1, we can't prefetch based on inst0 jump!!!
+        (speculative_jump0) && !(empty_out && pc[0]) ? inst_high_q[PC_WIDTH-1:2] :
+        (speculative_jump1) ? inst[2 +: FETCH_W] :
+        (speculative_jump2) ? inst[18 +: FETCH_W] :
+        (speculative_jump3) ? inst[34 +: FETCH_W] :
         // if we already speculated and have another jump, just stall
         (speculative_jump0 || speculative_jump1) && inst_speculative_q ? fetch_addr_q :
         // increment by default
-        fetch_addr_q + {{(PC_WIDTH-2){1'b0}}, 1'b1};
+        fetch_addr_q + {{(FETCH_W-1){1'b0}}, 1'b1};
 
     // Is the new word a speculative fetch after jump ?
     assign inst_speculative =
         // We just got into a speculative jump and either we also cleared previous speculation or we weren't in one
-        (speculative_jump0 || speculative_jump1) && (jump_ok1 || jump_ok2 || !inst_speculative_q) ? 1'b1 :
+        (speculative_jump0 || speculative_jump1 || speculative_jump2 || speculative_jump3) && (jump_ok1 || jump_ok2 || !inst_speculative_q) ? 1'b1 :
         // we just cleared a speculation
         (jump_ok1 || jump_ok2) ? 1'b0 :
         // keep last state
@@ -90,11 +120,12 @@ module cpu (
     // inst_valid_q is a qualifier for the ROM q output
     // we always fetch, UNLESS the non-empty FIFO output indicates we have a single issue,
     // which will take 2 cycles to consume, so we don't increment for 1 cycle
+
     always @(posedge clk or negedge resetN)
     begin
         if (!resetN)
         begin
-            fetch_addr_q <= {(PC_WIDTH-1){1'b0}};
+            fetch_addr_q <= {FETCH_W{1'b0}};
             inst_valid <= 1'b0;
             inst_valid_q <= 1'b0;
             inst_speculative_q <= 1'b0;
@@ -102,13 +133,15 @@ module cpu (
         else
         begin
             fetch_addr_q <= fetch_addr;
-            inst_valid <= 1'b1;
-            inst_valid_q <= inst_valid && !(!dual_issue_out && !empty_out);
+            inst_valid <= (depth < 4'h4) ? 1'b1 : 1'b0;
+            inst_valid_q <= inst_valid;
+            //inst_valid_q <= inst_valid && !almost_full_out && !(!dual_issue_out && !empty_out);
             inst_speculative_q <= inst_speculative; // same timing as inst
         end
     end
     always @(posedge clk)
-        inst_high_q <= inst[31:16];
+        if (inst_valid_q)
+            inst_high_q <= inst[63:48];
 
     //
     // ROM address bus output
@@ -121,32 +154,45 @@ module cpu (
     //
 
     logic empty_out, speculative_out;
-    logic [PC_WIDTH-2:0]fetch_addr_out;
-    logic [31:0]inst_out;
-    logic pop, pop_d, pop_q2;
+    logic [FETCH_W-1:0]fetch_addr_out;
+    logic [63:0]inst_wide;
+    logic [DW-1:0]inst_out;
+    logic pop_d;
+        logic high_low;
+    always @(posedge clk)
+        high_low <=
+            empty_out ? 1'b0 :
+            wide_pop ? 1'b0 :
+            (pop && !empty_out) ? !high_low :
+            high_low;
+    wire wide_pop = pop && (high_low || quad_issue_out);
+
+    assign inst_out = high_low ? inst_wide[63:32] : inst_wide[31:0];
 
     // always pop, UNLESS output output valid, we don't have dual issue, and are only on inst0
     // (must keep output for inst1 next cycle)
-    assign pop = !(valid_out && !dual_issue_out && !pc0_out);
+    wire pop = !(valid_out && !dual_issue_out && !pc0_out);
 
     //
     // instruction FIFO
     // data is instruction word + speculative bit + address
     //
+    wire [3:0]depth;
     generic_fifo #(
-        .DEPTH(4),
-        .WIDTH(32 + 1 + (PC_WIDTH - 1))
+        .DEPTH(8),
+        .WIDTH(64 + 1 + FETCH_W)
     ) inst_fifo (
         .clk(clk),
         .resetN(resetN),
         .push(inst_valid_q),
-        .pop(pop),
+        .pop(wide_pop),
         .wdata({inst_speculative_q, fetch_addr_q, inst}),
 
         .flush(missed_flush),
         .full(),
         .empty(empty_out),
-        .rdata({speculative_out, fetch_addr_out, inst_out})
+        .rdata({speculative_out, fetch_addr_out, inst_wide}),
+        .depth(depth)
     );
 
     //
@@ -157,7 +203,7 @@ module cpu (
 
     // we use PC although it is set in execute stage because it is frozen once in misprediction
     // This is the fast recovery in case we already stalled
-    wire jump_ok1 = stall_on_mispredict && (fetch_addr_out == pc[PC_WIDTH-1:1]);
+    wire jump_ok1 = stall_on_mispredict && (fetch_addr_out == pc[PC_WIDTH-1:2]);
     // save misprediction state
     logic stall_on_mispredict;
     always @(posedge clk or negedge resetN)
@@ -184,6 +230,8 @@ module cpu (
         else
             if (valid_out && !dual_issue_out )
                 pc0_out <= !pc0_out;
+            else if (valid_out && dual_issue_out )
+                pc0_out <= 1'b0;
             else if (missed_jump)
                 pc0_out <= pc0_e; // restore last good value
     end
@@ -205,17 +253,24 @@ module cpu (
     // Dual issue handling
     // dual issue detection is critical, and must handle mispredictions
     // (must remember which instruction was executed before misprediction, if jump was on inst0)
-    logic dual_issue_d;
+    logic dual_issue_d, quad_issue_d;
     // True if we can issue 2 instruction on this cycle
     // we do this with type A on inst0, and type C on inst1
     // perhaps we could dual issue on two type A, but this is a useless sequence, as inst0 is simply ignored
     wire dual_issue_out = !inst_out[`SEL0_A] && inst_out[`SEL1_A];
+    wire quad_issue_out = 
+        !inst_wide[`SEL0_A] && inst_wide[`SEL1_A] && !inst_wide[`SEL2_A] && inst_wide[`SEL3_A] &&
+        ((inst_wide[`SEL3_C] == 6'h30) || (inst_wide[`SEL3_C] == 6'h0c)) && // just data transfer A/M/D
+        (!inst_wide[`SEL3_LD_M] || !inst_wide[`SEL1_LD_M]) && //only one Memory writes
+        !inst_wide[`SEL3_LD_A] &&
+        !inst_wide[`SEL1_LD_A] && // no A write by ALU
+        !(inst_wide[`SEL3_LT0] || inst_wide[`SEL3_0]); // no jumps, at least for the moment
     // True if inst1 is executed this cycle, either with dual_issue (type C), or as single instruction (type A or C)
     wire inst0_out = dual_issue_out || !pc0_out;
     wire inst1_out = dual_issue_out ||  pc0_out;
 
     // decode stage vars
-    logic [1:0]pc_inc_d;
+    logic [2:0]pc_inc_d;
     logic load_a, load_d, load_m;
     logic load_a_d, load_d_d, load_m_d;
     logic [5:0]alu_fn_d;
@@ -225,8 +280,9 @@ module cpu (
     logic jump1_lt_d, jump1_0_d, jump1_gt_d;
     logic jump_a_en_d;
     logic [31:0]inst_out_d;
+    logic [63:0]inst_wide_d;
     logic valid_d;
-    logic [PC_WIDTH-2:0]fetch_addr_d;
+    logic [FETCH_W-1:0]fetch_addr_d;
 
     // select A or M
     // we have one ALU, that works on the instruction pointed by pc0_out,
@@ -255,7 +311,8 @@ module cpu (
         jump1_gt_d <= valid_out && inst1_out && inst_out[`SEL1_GT0];
         // If this signal is active, the decode stage is carrying a speculative word
         speculative_d <= speculative_out && !empty_out;
-        inst_out_d <= {32{!empty_out}} & inst_out; // check if we need this bit clearing, even if it is cheap
+        inst_out_d <= inst_out;
+        inst_wide_d <= inst_wide[63:0];
         jump_a_en_d <=  pop_d && !dual_issue_out; // TODO try replacing with saomething more reliable
 
         valid_d <= valid_out;
@@ -269,23 +326,27 @@ module cpu (
         // and not dual issue, A was set from inst0 a cycle before
         sel_a_d <= !sel_am && !dual_issue_out;
         dual_issue_d <= dual_issue_out;
+        quad_issue_d <= quad_issue_out;
         fetch_addr_d <= fetch_addr_out;
         pop_d <= pop;
     end
 
     assign load_a =
+        quad_issue_out && !inst_wide[`SEL2_A] ||
         inst0_out && (!inst_out[`SEL0_A] || inst_out[`SEL0_LD_A]) ||
         inst1_out && (!inst_out[`SEL1_A] || inst_out[`SEL1_LD_A]);
     assign load_d =
+        quad_issue_out && inst_wide[`SEL3_LD_D] ||
         inst0_out && ( inst_out[`SEL0_A] && inst_out[`SEL0_LD_D]) ||
         inst1_out && ( inst_out[`SEL1_A] && inst_out[`SEL1_LD_D]);
     assign load_m =
-        inst0_out && ( inst_out[`SEL0_A] && inst_out[`SEL0_LD_M]) ||
-        inst1_out && ( inst_out[`SEL1_A] && inst_out[`SEL1_LD_M]);
+        quad_issue_out && (inst_wide[`SEL1_LD_M] || inst_wide[`SEL3_LD_M]) ||
+        inst0_out      && ( inst_out[`SEL0_A] && inst_out[`SEL0_LD_M]) ||
+        inst1_out      && ( inst_out[`SEL1_A] && inst_out[`SEL1_LD_M]);
 
+    assign pc_inc_d = quad_issue_d ? 3'd4 : dual_issue_d ? 3'd2 : 3'd1;
     always @(posedge clk)
     begin
-        pc_inc_d <= dual_issue_out ? 2'd2 : 2'd1;
         // load A/D can come from either instruction. we cover the following cases:
         // pc[0] == 0, dual issue, if inst_out[0] is A instruction
         // pc[0] == 0, single issue, if inst_out[0] is C instruction
@@ -306,6 +367,8 @@ module cpu (
         load_a_d ? next_a[14:0] :
         // older
                    a[14:0];
+
+    assign read_data2_addr = inst_wide[32  +: 15];
 
     // *********************
     // *** execute stage ***
@@ -339,6 +402,7 @@ module cpu (
         sel_a_sampled; // decide whether the alu will use the data in memory or in the A register
     
     wire [15:0]alu_out;
+    wire [15:0]alu_out2;
 
     reg [15:0] a;
     reg [15:0] d;
@@ -351,6 +415,7 @@ module cpu (
             .fn(alu_fn_d),
             .zero(zero)
         );
+
     //
     // Dual issue logic
     //
@@ -369,9 +434,9 @@ module cpu (
     wire greater_than_zero = !(less_than_zero || zero);
 
     // if fetch indicates this is a speculative word and the addresses don't match, it s a misprediction
-    wire missed_jump = speculative_d && (fetch_addr_d != pc[PC_WIDTH-1:1]);
+    wire missed_jump = valid_d && (fetch_addr_d != pc[PC_WIDTH-1:2]);
     // we use this in case we didn't stall yet, the PC moves and we can't use jump_ok1
-    wire jump_ok2    = speculative_d && (fetch_addr_d == pc[PC_WIDTH-1:1]);
+    wire jump_ok2    = speculative_d && (fetch_addr_d == pc[PC_WIDTH-1:2]);
     // make a 1 cycle pulse
     wire missed_flush = missed_jump && !missed_flush_q;
     
@@ -385,24 +450,46 @@ module cpu (
     // this is either on jump0 (because A was set last cycle), or on jump1 if jump_a_en was true last cycle (jump_a_en_d)
     wire jump_a = jump1 && jump_a_en_d || jump0;
     wire jump_inst = jump1 && dual_issue_d;
+    wire jump_inst_quad = quad_issue_d && (!next_d[15]) && (|next_d[14:0]) && inst_wide_d[`SEL1_LD_D] && inst_wide_d[`SEL3_GT0];
     // if we autoinc, we go to the beginning of the next 32-bit word
     wire [PC_WIDTH-1:0] new_pc =
         !valid_d     ? pc :
+        jump_inst_quad ? inst_wide_d[32 +: 15] :
         jump_inst    ? inst_out_d[PC_WIDTH-1:0] :
         jump_a       ? a[PC_WIDTH-1:0] :
-        !missed_jump ? pc + {{(PC_WIDTH-2){1'b0}}, pc_inc_d} :
+        !missed_jump ? pc + {{(PC_WIDTH-3){1'b0}}, pc_inc_d} :
                      pc;
 
+    logic next_a_inst_sel_d;
+    logic [14:0] next_a_inst_d;
+    wire [14:0]next_a_inst =
+        (quad_issue_out && !inst_wide[`SEL2_A]) ? inst_wide[32 +: 15] :
+        (quad_issue_out && !inst_wide[`SEL0_A]) ? inst_wide[0 +: 15] :
+        (!pc0_out && !inst_out[`SEL0_A]) ? inst_out[0  +: 15] :
+                                           inst_out[16 +: 15];
+    always @(posedge clk)
+    begin
+        next_a_inst_d = next_a_inst;
+        next_a_inst_sel_d <=
+            quad_issue_out ||
+            (!pc0_out && !inst_out[`SEL0_A]) ||
+            ( pc0_out && !inst_out[`SEL1_A]);
+    end
+            
     wire [15:0] next_a =
-        (!pc[0] && !inst_out_d[`SEL0_A]) ? {1'b0, inst_out_d[0  +: 15]} :
-        ( pc[0] && !inst_out_d[`SEL1_A]) ? {1'b0, inst_out_d[16 +: 15]} :
+        next_a_inst_sel_d ? {1'b0, next_a_inst_d} :
         alu_out;
     wire [15:0] next_d =
+        (quad_issue_d && inst_wide_d[`SEL3_LD_D] && !inst_wide_d[`SEL3_AM] && (inst_wide_d[`SEL3_C] == 6'h30) ) ? next_a :
+        (quad_issue_d && inst_wide_d[`SEL3_LD_D] &&  inst_wide_d[`SEL3_AM] && (inst_wide_d[`SEL3_C] == 6'h30) ) ? in_m2 :
         alu_out;
     assign write_data_addr =
+        (quad_issue_d && inst_wide_d[`SEL3_LD_M]) ?  inst_wide_d[32 +: 15] :
         dual_issue_d ? inst_out_d[14:0] :
                        a[14:0];
-    assign out_m = alu_out;
+    assign out_m =
+        (quad_issue_d && inst_wide_d[`SEL3_LD_M] && (inst_wide_d[`SEL3_C] == 6'h0c)) ? next_d : 
+                                                         alu_out;
     assign write_m = load_m_d && !missed_jump;
 
     always @(posedge clk or negedge resetN)

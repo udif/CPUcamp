@@ -87,13 +87,13 @@ int main(int argc, char** argv, char** env) {
         t = contextp->time();
         if (t > 10)
             top->BUTTON = 1;
-        //if (0 && top->top->write_m && (top->top->write_data_addr & 0x3ff) > 2) {
-        //    std::cout << "address=" << std::setfill('0') << std::setw(3) << std::hex << top->top->__PVT__cpu_inst__DOT__pc;
-        //    std::cout << " inst="   << std::setfill('0') << std::setw(4) << std::hex << top->top->instruction;
-        //    std::cout << " ram_address=" << std::setfill('0') << std::setw(3) << (top->top->write_data_addr & 0x3ff);
-        //    std::cout << " write_data="  << std::setfill('0') << std::setw(5) << std::dec << top->top->out_m;
-        //    std::cout << std::endl;
-        //}
+        if (0 && top->top->write_m && ((top->top->write_data_addr & 0x3ff) == 1 || (top->top->write_data_addr & 0x3ff) == 6)) {
+            //std::cout << "address=" << std::setfill('0') << std::setw(3) << std::hex << top->top->__PVT__cpu_inst__DOT__pc;
+            //std::cout << " inst="   << std::setfill('0') << std::setw(4) << std::hex << top->top->instruction;
+            std::cout << " ram_address=" << std::setfill('0') << std::setw(3) << (top->top->write_data_addr);
+            std::cout << " write_data="  << std::setfill('0') << std::setw(5) << std::dec << top->top->out_m;
+            std::cout << std::endl;
+        }
         //int pc = top->top->__PVT__cpu_inst__DOT__pc;
         //unsigned int inst = top->top->__PVT__cpu_inst__DOT__inst_out_d;
         //if (top->top->__PVT__rst2 && (pc > 159)) {
@@ -118,7 +118,7 @@ int main(int argc, char** argv, char** env) {
     //                 std::setfill('0') << std::setw(4)  << std::hex << top->top->__PVT__ram_cpu_inst__DOT__mem[i + 1] << std::endl;
     //}
     clock_t end_time = clock();
-    int pll_mult = 290;
+    int pll_mult = 340;
     std::cout << "Total runtime: " << t << std::dec << " cycles\n";
     std::cout << "Total runtime: " << t / (50e6 / 100 * pll_mult) << std::dec << " seconds (Assuming default 50MHz clock) and a " << pll_mult << " PLL multiplier (divided by 100)\n";
     std::cout << "Elapsed: " << (double)(end_time - start_time) / CLOCKS_PER_SEC << " seconds\n";
