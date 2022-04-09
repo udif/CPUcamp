@@ -264,7 +264,7 @@ module cpu (
         (!inst_wide[`SEL3_LD_M] || !inst_wide[`SEL1_LD_M]) && //only one Memory writes
         !inst_wide[`SEL3_LD_A] &&
         !inst_wide[`SEL1_LD_A] && // no A write by ALU
-        !(inst_wide[`SEL3_GT0] || inst_wide[`SEL3_LT0] || inst_wide[`SEL3_0]); // no jumps, at least for the moment
+        !(inst_wide[`SEL3_LT0] || inst_wide[`SEL3_0]); // no jumps, at least for the moment
     // True if inst1 is executed this cycle, either with dual_issue (type C), or as single instruction (type A or C)
     wire inst0_out = dual_issue_out || !pc0_out;
     wire inst1_out = dual_issue_out ||  pc0_out;
@@ -450,9 +450,11 @@ module cpu (
     // this is either on jump0 (because A was set last cycle), or on jump1 if jump_a_en was true last cycle (jump_a_en_d)
     wire jump_a = jump1 && jump_a_en_d || jump0;
     wire jump_inst = jump1 && dual_issue_d;
+    wire jump_inst_quad = quad_issue_d && (!next_d[15]) && (|next_d[14:0]) && inst_wide_d[`SEL1_LD_D] && inst_wide_d[`SEL3_GT0];
     // if we autoinc, we go to the beginning of the next 32-bit word
     wire [PC_WIDTH-1:0] new_pc =
         !valid_d     ? pc :
+        jump_inst_quad ? inst_wide_d[32 +: 15] :
         jump_inst    ? inst_out_d[PC_WIDTH-1:0] :
         jump_a       ? a[PC_WIDTH-1:0] :
         !missed_jump ? pc + {{(PC_WIDTH-3){1'b0}}, pc_inc_d} :
