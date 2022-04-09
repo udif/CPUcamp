@@ -32,6 +32,12 @@ export VERILATOR_ROOT
 VERILATOR = $(VERILATOR_ROOT)/bin/verilator
 endif
 
+fast:
+	$(VERILATOR) -cc --exe --build -j top.sv cpu.sv  alu.sv  ram_sim.v  rom_sim.v  sim_main.cpp
+	@echo "-- RUN ---------------------"
+	obj_dir/Vtop
+	@echo "-- DONE --------------------"
+
 default:
 	$(VERILATOR) -cc --exe --trace --build -j top.sv cpu.sv  alu.sv  ram_sim.v  rom_sim.v  sim_main.cpp
 	@echo "-- RUN ---------------------"

@@ -89,6 +89,7 @@ module top(
 
     logic finished;
 
+`ifdef VERILATOR
     initial
     begin
         if ($test$plusargs("trace") != 0)
@@ -99,6 +100,7 @@ module top(
         end
         $display("[%0t] Model running...\n", $time);
     end
+`endif
 
 /* verilator lint_off WIDTH */
     always_comb
