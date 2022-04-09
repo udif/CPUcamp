@@ -37,9 +37,10 @@ module perf_counter(
         $display("[%0t] Model running...\n", $time);
         if ($test$plusargs("trace") != 0)
         begin
-            //$display("[%0t] Tracing to logs/vlt_dump.vcd...\n", $time);
-            //$dumpfile("logs/vlt_dump.vcd");
-            //$dumpvars();
+            $display("[%0t] Tracing to logs/vlt_dump.vcd...\n", $time);
+            $dumpfile("logs/vlt_dump.vcd");
+            $dumpvars;
+            $dumpon;
         end
         for (i = 0; i < $size(ram_vga_inst.mem); i = i + 1)
         begin
@@ -51,14 +52,18 @@ module perf_counter(
     integer dumpflag = 0;
     always @(posedge CLK_50)
     begin
+        //if (cpu_inst.write_m)
+        //begin
+        //    $display("pc=%04x address=%08x data=%d", cpu_inst.pc, cpu_inst.write_data_addr, cpu_inst.out_m);
+        //end
         if (cpu_inst.pc == 160)
             $write(ram_cpu_inst.mem[4], "\r");
         if (dumpflag == 0 /*&& cpu_inst.pc > 60 /*&& ram_cpu_inst.mem[4] < 2 */)
         begin
             dumpflag = 1;
-            $display("[%0t] Tracing to logs/vlt_dump.vcd...\n", $time);
-            $dumpfile("logs/vlt_dump.vcd");
-            $dumpvars();
+            //$display("[%0t] Tracing to logs/vlt_dump.vcd...\n", $time);
+            //$dumpfile("logs/vlt_dump.vcd");
+            //$dumpvars();
         end
         if (cpu_inst.pc > 400) // should be 1023 but there is a verilator issue with ROM content not being 0
         begin

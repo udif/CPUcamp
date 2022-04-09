@@ -72,8 +72,10 @@ module top(
     logic write_m /*verilator public*/ ;
     logic [DATA_WIDTH-1:0] out_m /*verilator public*/ ;
     logic [14:0]read_data_addr /*verilator public*/ ;
+    logic [14:0]read_data2_addr /*verilator public*/ ;
     logic [14:0]write_data_addr /*verilator public*/ ;
     logic [DATA_WIDTH-1:0] in_m /*verilator public*/ ;
+    logic [DATA_WIDTH-1:0] in_m2 /*verilator public*/ ;
     // ROM
     logic [INSTR_WIDTH-1:0] instruction  /*verilator public*/ ;
     // instruction bus address width is driven by PC width minus 1 (we pack 2 instructions in a word)
@@ -142,6 +144,22 @@ module top(
         .wren_b (1'b0),
         .q_a (),
         .q_b (in_m)
+    );
+
+    // CPU2: 1 wr + 1 rd port
+    ram #(.DATA_WIDTH(DATA_WIDTH),
+        .RAM_REGISTER_COUNT(RAM_REGISTER_COUNT)
+    ) ram_cpu2_inst (
+        .address_a (write_data_addr[$clog2(RAM_REGISTER_COUNT)-1:0]),
+        .address_b (read_data2_addr[$clog2(RAM_REGISTER_COUNT)-1:0]),
+        .clock_a (cpu_clk),
+        .clock_b (cpu_clk),
+        .data_a (out_m),
+        .data_b (16'b0),
+        .wren_a (write_m),
+        .wren_b (1'b0),
+        .q_a (),
+        .q_b (in_m2)
     );
 
     vga #(.DATA_WIDTH(16), .BITS_PER_MEMORY_PIXEL_X(BITS_PER_MEMORY_PIXEL_X), .BITS_PER_MEMORY_PIXEL_Y(BITS_PER_MEMORY_PIXEL_Y),
@@ -232,6 +250,8 @@ module top(
             .write_m(write_m),
             .write_data_addr(write_data_addr),
             .in_m(in_m),
-            .read_data_addr(read_data_addr)
+            .in_m2(in_m2),
+            .read_data_addr(read_data_addr),
+            .read_data2_addr(read_data2_addr)
         );
 endmodule
