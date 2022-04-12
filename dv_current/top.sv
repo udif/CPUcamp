@@ -133,7 +133,7 @@ module top(
     // CPU: 1 wr + 1 rd port
     ram #(.DATA_WIDTH(DATA_WIDTH),
         .RAM_REGISTER_COUNT(RAM_REGISTER_COUNT)
-    ) ram_cpu_inst (
+    ) ram_inst (
         .address_a (write_data_addr[$clog2(RAM_REGISTER_COUNT)-1:0]),
         .address_b (read_data_addr[$clog2(RAM_REGISTER_COUNT)-1:0]),
         .clock_a (cpu_clk),
@@ -149,7 +149,7 @@ module top(
     // CPU2: 1 wr + 1 rd port
     ram #(.DATA_WIDTH(DATA_WIDTH),
         .RAM_REGISTER_COUNT(RAM_REGISTER_COUNT)
-    ) ram_cpu2_inst (
+    ) ram_inst_2 (
         .address_a (write_data_addr[$clog2(RAM_REGISTER_COUNT)-1:0]),
         .address_b (read_data2_addr[$clog2(RAM_REGISTER_COUNT)-1:0]),
         .clock_a (cpu_clk),

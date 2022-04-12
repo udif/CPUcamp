@@ -97,38 +97,40 @@ module perf_counter(
         end
     end
 
-    reg [14:0] last_pc;
+    reg [$bits(pc)-1:0] last_pc, pc2;
     reg [15:0]inst;
     always @(posedge CLK_50 or negedge resetN)
     if (!resetN)
     begin
+        last_pc <= '0;
     end
     else
     begin
         if (memlog==1 && cpu_inst.write_m)
         begin
-            $display("pc=%04x address=%08x data=%d", cpu_inst.pc, top.write_data_addr, cpu_inst.out_m);
+            $display("pc=%04x address=0x%04x (%0d) data=0x%04x (%0d)", cpu_inst.pc, top.write_data_addr, top.write_data_addr, cpu_inst.out_m, cpu_inst.out_m);
         end
         if (disasm==1)
         begin
-            if (last_pc != cpu_inst.pc)
+            if (last_pc != pc)
             begin
-                last_pc <= cpu_inst.pc;
+                last_pc <= pc;
                 for (i = 0; i < $bits(top.instruction); i = i + 16)
                 begin
-                    inst = top.instruction[16*i +: 16];
+                    pc2 = (last_pc << $clog2($bits(top.instruction) / 16)) + i[4 +: 16];
+                    inst = top.instruction[i +: 16];
                     if (inst[15])
                     begin
                         if (inst[15:13] != 3'b111)
-                            $display("%04x: Illegal instruction %04xa", pc, inst);
+                            $display("%04x: Illegal instruction %04xa", pc2, inst);
                         else
                         begin
-                            $display("%04x: %s=%s%s", pc, dst_tbl[inst[5:3]], alu_tbl[inst[12]][{26'd0, inst[11:6]}], jmp_tbl[inst[2:0]]);
+                            $display("%04x: %s=%s%s", pc2, dst_tbl[inst[5:3]], alu_tbl[inst[12]][{26'd0, inst[11:6]}], jmp_tbl[inst[2:0]]);
                         end
                     end
                     else
                     begin
-                        $display("%04x: @%0d (0x%04x)", pc, inst[14:0], inst[14:0]);
+                        $display("%04x: @%0d (0x%04x)", pc2, inst[14:0], inst[14:0]);
                     end
                 end
             end
