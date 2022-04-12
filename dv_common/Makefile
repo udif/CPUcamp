@@ -35,27 +35,28 @@ endif
 V_FILES =  top.sv cpu.sv alu.sv ../dv_common/ram_sim.v ../dv_common/rom_sim.v ../dv_common/vga.sv ../dv_common/hex_display.sv ../dv_common/perf_counter.sv
 WIDTH = $(shell grep 'INSTR_WIDTH =' top.sv | sed 's/^.*INSTR_WIDTH = \([0-9]*\).*$$/\1/g' )
 WORDS = $(shell expr $$( grep 'INSTR_WIDTH =' top.sv | sed 's/^.*INSTR_WIDTH = \([0-9]*\).*$$/\1/g' ) / 16 )
+VFLAGS = -cc --exe --build -j +incdir+../dv_common
 
 fast:
-	$(VERILATOR) -cc --exe --build -j $(V_FILES) ../dv_common/sim_main.cpp
+	$(VERILATOR) $(VFLAGS) $(V_FILES) ../dv_common/sim_main.cpp
 	@echo "-- RUN ---------------------"
 	obj_dir/Vtop
 	@echo "-- DONE --------------------"
 
 memlog:
-	$(VERILATOR) -cc --exe --build -j $(V_FILES) ../dv_common/sim_main.cpp
+	$(VERILATOR) $(VFLAGS) $(V_FILES) ../dv_common/sim_main.cpp
 	@echo "-- RUN ---------------------"
 	obj_dir/Vtop +memlog
 	@echo "-- DONE --------------------"
 
 disasm:
-	$(VERILATOR) -cc --exe --build -j $(V_FILES) ../dv_common/sim_main.cpp
+	$(VERILATOR) $(VFLAGS) $(V_FILES) ../dv_common/sim_main.cpp
 	@echo "-- RUN ---------------------"
 	obj_dir/Vtop +memlog +disasm
 	@echo "-- DONE --------------------"
 
 rand:
-	$(VERILATOR) -cc --exe --build -j $(V_FILES) ../dv_common/sim_main.cpp
+	$(VERILATOR) $(VFLAGS) $(V_FILES) ../dv_common/sim_main.cpp
 	@echo "-- RUN ---------------------"
 	../rand/rand_hackcpu.py -l 128 -w $(WORDS) -r 1024
 	obj_dir/Vtop +rom=rom_rand_plain$(WIDTH).hex +memlog +disasm
@@ -64,7 +65,7 @@ rand:
 trace:
 	# removing --trace causes issues with test not ending as it seems to start fetching instructions
 	# from supposedly-blank ROM areas around PC=400 and above.
-	$(VERILATOR) -cc --exe --trace --build -j $(V_FILES) ../dv_common/sim_main.cpp
+	$(VERILATOR) $(VFLAGS) --trace $(V_FILES) ../dv_common/sim_main.cpp
 	@echo "-- RUN ---------------------"
 	obj_dir/Vtop +trace
 	@echo "-- DONE --------------------"
