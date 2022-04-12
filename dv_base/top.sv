@@ -71,6 +71,7 @@ module top(
 
     //===
     logic [$clog2(RAM_REGISTER_COUNT)-1:0] ram_address  /*verilator public*/;
+    wire [$clog2(RAM_REGISTER_COUNT)-1:0] write_data_addr = ram_address;
     logic we  /*verilator public*/;
     logic [DATA_WIDTH-1:0] rdata;
 
@@ -89,13 +90,6 @@ module top(
     integer i;
     initial
     begin
-        if ($test$plusargs("trace") != 0)
-        begin
-            $display("[%0t] Tracing to logs/vlt_dump.vcd...\n", $time);
-            $dumpfile("logs/vlt_dump.vcd");
-            $dumpvars();
-        end
-        $display("[%0t] Model running...\n", $time);
         for (i = 0; i < RAM_REGISTER_COUNT; i = i + 1)
             ram_inst.mem[i] = 0;
     end
@@ -167,7 +161,6 @@ module top(
                 );
 `endif
   
-`ifndef NO_PERF
     // performance counter
     logic perf_drawing_request;
     logic [7:0] perf_rgb;
@@ -195,7 +188,6 @@ module top(
                      .LED(LED),
                      .finished(finished)
                  );
-`endif
 
     //CPU AND ROM
     logic [INSTR_WIDTH-1:0] instruction  /*verilator public*/;

@@ -64,7 +64,6 @@ int main(int argc, char** argv, char** env) {
     const std::unique_ptr<Vtop> top{new Vtop{contextp.get(), "TOP"}};
 
     top->BUTTON = 0;
-    int outer_loop = 0;
     for (int i = 0; i < 5; i++) {
     	top->CLK_50 = 0;
         contextp->timeInc(1);
@@ -73,7 +72,6 @@ int main(int argc, char** argv, char** env) {
         contextp->timeInc(1);
         top->eval();
     }
-    int wide = 0;
     unsigned long t;
     int count = 0;
     clock_t start_time = clock();
@@ -89,38 +87,11 @@ int main(int argc, char** argv, char** env) {
         t = contextp->time();
         if (t > 10)
             top->BUTTON = 1;
-        //if (count > 1000)
-        //    break;
-        if (top->top->we && (top->top->ram_address & 0x3ff) > 2 ||  (top->top->ram_address & 0x3ff) == 9999) {
-            //std::cout << "address=" << std::setfill('0') << std::setw(3) << std::hex << top->top->__PVT__cpu_inst__DOT__pc;
-            //std::cout << " inst="   << std::setfill('0') << std::setw(4) << std::hex << top->top->instruction;
-            std::cout << " ram_address=" << std::setfill('0') << std::setw(3) << (top->top->ram_address);
-            std::cout << " write_data="  << std::setfill('0') << std::setw(5) << std::dec << top->top->cpu_out_m;
-            std::cout << std::endl;
-        }
-        if (top->top->__PVT__cpu_inst__DOT__pc < 24)
-            outer_loop = 0;
-        if (top->top->__PVT__cpu_inst__DOT__pc > 159) {
-            count++;
-            std::cout << count << '\r';
-            //std::cout << outer_loop << "pc:" << top->top->__PVT__cpu_inst__DOT__pc << std::endl;
-            if (top->top->__PVT__cpu_inst__DOT__pc == 1023) {
-                std::cout << "Got to final address\n";
-                break;
-            }
-        }
     }
     clock_t end_time = clock();
-    for (int i = 0 ; i < 24; i += 2) {
-        std::string s1 = std::bitset<16>{top->top->__PVT__ram_inst__DOT__mem[i]}.to_string(' ', '*');
-        std::string s2 = std::bitset<16>{top->top->__PVT__ram_inst__DOT__mem[i + 1]}.to_string(' ', '*');
-        std::cout << std::setfill('0') << std::setw(16) << s1 <<
-                     std::setfill('0') << std::setw(16) << s2 << "||" <<
-                     std::setfill('0') << std::setw(4)  << std::hex << top->top->__PVT__ram_inst__DOT__mem[i] << '|' <<
-                     std::setfill('0') << std::setw(4)  << std::hex << top->top->__PVT__ram_inst__DOT__mem[i + 1] << std::endl;
-    }
+    int pll_mult = 340;
     std::cout << "Total runtime: " << t << std::dec << " cycles\n";
-    std::cout << "Total runtime: " << t/50e6 << std::dec << " seconds (Assuming default 50MHz clock)\n";
+    std::cout << "Total runtime: " << t / (50e6 / 100 * pll_mult) << std::dec << " seconds (Assuming default 50MHz clock) and a " << pll_mult << " PLL multiplier (divided by 100)\n";
     std::cout << "Elapsed: " << (double)(end_time - start_time) / CLOCKS_PER_SEC << " seconds\n";
 
     // Final model cleanup
